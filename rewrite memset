@@ -1,0 +1,102 @@
+#include<iostream>
+#include<ctime>
+#pragma GCC optimize(0)
+using namespace std;
+
+unsigned char mydata[1000000005];
+
+void* basic_memset(void* s, int c, size_t n)
+{
+	size_t cnt = 0;
+	unsigned char* schar = (unsigned char*)s;
+	while (cnt < n) {
+		*schar++ = (unsigned char)c;
+		cnt++;
+	}
+	return s;
+}
+
+void* better_memset(void* s, int c, size_t n)
+{
+	int K = sizeof(unsigned long);
+	long pos = (long)s;
+
+	if (n >= 8)
+	{
+		unsigned long cccc = (unsigned char)c;
+		cccc |= cccc << 8;
+		cccc |= cccc << 16;
+		if (K > 4)
+		{
+			cccc |= (cccc << 16) << 16;//可移植性
+		}
+
+		while (pos % K != 0)//如果地址不对齐，则先将地址对齐
+		{
+			((unsigned char*)pos)[0] = c;
+			pos += 1;
+			n -= 1;
+		}
+
+		//按照(K*8)个字节处理
+		unsigned int group = n / (K * 8);
+		while (group)
+		{
+			((unsigned long*)pos)[0] = cccc;
+			((unsigned long*)pos)[1] = cccc;
+			((unsigned long*)pos)[2] = cccc;
+			((unsigned long*)pos)[3] = cccc;
+			((unsigned long*)pos)[4] = cccc;
+			((unsigned long*)pos)[5] = cccc;
+			((unsigned long*)pos)[6] = cccc;
+			((unsigned long*)pos)[7] = cccc;
+			pos += 8 * K;
+			group--;
+		}
+		n %= (K * 8);
+		//剩余n%(K*8)个字节未处理
+
+		//按照K个字节处理，一次处理8个字节
+		group = n / K;
+		while (group)
+		{
+			((unsigned long*)pos)[0] = cccc;
+			pos += K;
+			group--;
+		}
+		n %= K;
+		//剩余(n%K)个字节未处理
+	}
+	//处理剩余(n%K)个字节，单个单个字节处理
+	while (n)
+	{
+		((unsigned char*)pos)[0] = c;
+		pos += 1;
+		n--;
+	}
+	return s;
+}
+
+
+int main()
+{
+	cout << "The size of array is: " << sizeof(mydata) << endl;
+	clock_t startTime, endTime;
+
+	startTime = clock();//计时开始
+	basic_memset(mydata, 47, sizeof(mydata));
+	endTime = clock();//计时结束
+	cout << "The run time of basic_memset is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC * 1000.0 << "ms" << endl;
+
+	startTime = clock();//计时开始
+	better_memset(mydata, 47, sizeof(mydata));
+	endTime = clock();//计时结束
+	cout << "The run time of better_memset is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC * 1000.0 << "ms" << endl;
+
+	startTime = clock();//计时开始
+	memset(mydata, 47, sizeof(mydata));
+	endTime = clock();//计时结束
+	cout << "The run time of memset is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC * 1000.0 << "ms" << endl;
+
+	return 0;
+}
